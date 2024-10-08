@@ -59,10 +59,34 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
-        if (board.getPiece(startPosition) == null) {
-            return null;
+        ChessPiece piece = board.getPiece(startPosition);
+        Collection<ChessMove> validMoves = piece.pieceMoves(board, startPosition);
+
+        //implement some more checks to determine if the move is actually valid
+        //checks if the move puts the king in check NOT WORKING RN
+        for (ChessMove move : validMoves) {
+            if (movePutsInCheck(piece.getTeamColor(), move)) {
+                validMoves.remove(move);
+            }
         }
-        return board.getPiece(startPosition).pieceMoves(board, startPosition);
+
+        return validMoves;
+    }
+
+    private boolean movePutsInCheck(TeamColor teamColor, ChessMove move) {
+        ChessPiece destPiece = board.getPiece(move.getEndPosition());
+
+        unsafeMove(move);
+        ChessMove undo = new ChessMove(move.getEndPosition(), move.getStartPosition(), null);
+        if (!isInCheck(teamColor)) {
+            board.addPiece(move.getEndPosition(), destPiece);
+            unsafeMove(undo);
+            return false;
+        } else {
+            board.addPiece(move.getEndPosition(), destPiece);
+            unsafeMove(undo);
+            return true;
+        }
     }
 
     /**
@@ -73,7 +97,21 @@ public class ChessGame {
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
         ChessPosition start = move.getStartPosition();
-        if (validMoves(start).contains(move)) {
+        if (board.getPiece(start) != null &&
+                validMoves(start).contains(move)) {
+            ChessPiece myPiece = board.getPiece(start);
+            board.addPiece(move.getEndPosition(), null);
+            board.addPiece(start, null);
+            board.addPiece(move.getEndPosition(), myPiece);
+        } else {
+            throw new InvalidMoveException();
+        }
+    }
+
+    //make move but without the check to see if the move is valid, for use in checking if future moves put me in check
+    private void unsafeMove(ChessMove move) {
+        ChessPosition start = move.getStartPosition();
+        if (board.getPiece(start) != null) {
             ChessPiece myPiece = board.getPiece(start);
             board.addPiece(move.getEndPosition(), null);
             board.addPiece(start, null);
@@ -109,7 +147,8 @@ public class ChessGame {
         int kingRow = kingPosition.getRow();
         int kingCol = kingPosition.getColumn();
         for (ChessMove move : otherMoves) {
-            int moveRow = move.getEndPosition().getRow(); int moveCol = move.getEndPosition().getColumn();
+            int moveRow = move.getEndPosition().getRow();
+            int moveCol = move.getEndPosition().getColumn();
             if (moveRow == kingRow && moveCol == kingCol) {
                 return true;
             }
@@ -144,7 +183,7 @@ public class ChessGame {
      * @param board the new board to use
      */
     public void setBoard(ChessBoard board) {
-        this.board= board;
+        this.board = board;
     }
 
     /**
