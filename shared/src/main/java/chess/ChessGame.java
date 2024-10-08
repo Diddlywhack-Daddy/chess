@@ -23,7 +23,7 @@ public class ChessGame {
      * @return Which team's turn it is
      */
     public TeamColor getTeamTurn() {
-        return teamTurn;
+        return this.teamTurn;
     }
 
     private void switchTeams(TeamColor currentTurn) {
@@ -40,7 +40,7 @@ public class ChessGame {
      * @param team the team whose turn it is
      */
     public void setTeamTurn(TeamColor team) {
-        throw new RuntimeException("Not implemented");
+        this.teamTurn = team;
     }
 
     /**
@@ -136,8 +136,6 @@ public class ChessGame {
         Collection<ChessMove> otherMoves = possibleMoves(otherColor);
 
         for (ChessMove move : otherMoves) {
-            int moveRow = move.getEndPosition().getRow();
-            int moveCol = move.getEndPosition().getColumn();
             if (board.getPiece(move.getEndPosition()) != null &&
                     board.getPiece(move.getEndPosition()).getPieceType() == ChessPiece.PieceType.KING &&
                     board.getPiece(move.getEndPosition()).getTeamColor() == teamColor) {
@@ -154,20 +152,9 @@ public class ChessGame {
      * @return True if the specified team is in checkmate
      */
     public boolean isInCheckmate(TeamColor teamColor) {
-        Collection<ChessMove> possibleMoves = new ArrayList<>();
-        for (int i = 1; i < 9; i++) {
-            for (int j = 1; j < 9; j++) {
-                ChessPosition boardPosition = new ChessPosition(i, j);
-                //safety check for a piece on the square
-                if (board.getPiece(boardPosition) != null) {
-                    //if the piece is my color, save all their possible moves
-                    if (board.getPiece(boardPosition).getTeamColor() == teamColor) {
-                        possibleMoves.addAll(board.getPiece(boardPosition).pieceMoves(board, boardPosition));
-                    }
-                }
-            }
-        }
-        throw new RuntimeException("not implemented");
+        Collection<ChessMove> possibleMoves = possibleMoves(teamColor);
+        possibleMoves.removeIf(move -> movePutsInCheck(teamColor, move));
+        return possibleMoves.isEmpty();
     }
 
     public Collection<ChessMove> possibleMoves(ChessGame.TeamColor color) {
