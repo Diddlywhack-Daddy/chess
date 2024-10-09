@@ -92,7 +92,7 @@ public class ChessGame {
         }
         if (validMoves.contains(move)) {
             ChessPiece myPiece = board.getPiece(start);
-            board.addPiece(move.getEndPosition(), new ChessPiece(this.teamTurn, move.getPromotionPiece()));
+            if(move.getPromotionPiece()!= null){myPiece = new ChessPiece(this.teamTurn,move.getPromotionPiece());}
             board.addPiece(start, null);
             board.addPiece(move.getEndPosition(), myPiece);
             switchTeams(teamTurn);
@@ -167,8 +167,7 @@ public class ChessGame {
     private boolean movePutsInCheck(TeamColor teamColor, ChessMove move) {
         ChessPiece destPiece = board.getPiece(move.getEndPosition());
         unsafeMove(move);
-        ChessMove undo = new ChessMove(move.getEndPosition(), move.getStartPosition(), null);
-        //TODO: fix the null in the above to be a promotion piece
+        ChessMove undo = new ChessMove(move.getEndPosition(), move.getStartPosition(), move.getPromotionPiece());
         if (isInCheck(teamColor)) {
             unsafeMove(undo);
             board.addPiece(move.getEndPosition(), destPiece);
@@ -193,13 +192,18 @@ public class ChessGame {
         if (isInCheck(teamColor)) {
             return false;
         }
+
         Collection<ChessMove> possibleMoves = possibleMoves(teamColor);
+        Collection<ChessMove> validMoves = possibleMoves(teamColor);
+        //makes a two collections so I can use 1 for the for loop and the other for the return without getting
+        // a concurrent modification exception
+
         for (ChessMove move : possibleMoves) {
             if (movePutsInCheck(teamColor, move)) {
-                possibleMoves.remove(possibleMoves);
+                validMoves.remove(move);
             }
         }
-        return possibleMoves.isEmpty();
+        return validMoves.isEmpty();
     }
 
     /**
