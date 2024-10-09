@@ -26,14 +26,6 @@ public class ChessGame {
         return this.teamTurn;
     }
 
-    private void switchTeams(TeamColor currentTurn) {
-        if (currentTurn == TeamColor.WHITE) {
-            teamTurn = TeamColor.BLACK;
-        } else {
-            teamTurn = TeamColor.WHITE;
-        }
-    }
-
     /**
      * Set's which teams turn it is
      *
@@ -51,6 +43,14 @@ public class ChessGame {
         BLACK
     }
 
+    private void switchTeams(TeamColor currentTurn) {
+        if (currentTurn == TeamColor.WHITE) {
+            teamTurn = TeamColor.BLACK;
+        } else {
+            teamTurn = TeamColor.WHITE;
+        }
+    }
+
     /**
      * Gets a valid moves for a piece at the given location
      *
@@ -59,34 +59,22 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
+        Collection<ChessMove> possibleMoves = possibleMoves(teamTurn);
         ChessPiece piece = board.getPiece(startPosition);
-        Collection<ChessMove> validMoves = piece.pieceMoves(board, startPosition);
+        //Collection<ChessMove> possibleMoves = piece.pieceMoves(board, startPosition);
+        Collection<ChessMove> validMoves = new ArrayList<>();
+        if (piece.getTeamColor() != teamTurn) {
+            return validMoves;
+        }
 
         //implement some more checks to determine if the move is actually valid
-        //checks if the move puts the king in check NOT WORKING RN
-        for (ChessMove move : validMoves) {
-            if (movePutsInCheck(piece.getTeamColor(), move)) {
-                validMoves.remove(move);
+
+        for (ChessMove move : possibleMoves) {
+            if (!movePutsInCheck(piece.getTeamColor(), move)) {
+                validMoves.add(move);
             }
         }
-
         return validMoves;
-    }
-
-    private boolean movePutsInCheck(TeamColor teamColor, ChessMove move) {
-        ChessPiece destPiece = board.getPiece(move.getEndPosition());
-
-        unsafeMove(move);
-        ChessMove undo = new ChessMove(move.getEndPosition(), move.getStartPosition(), null);
-        if (!isInCheck(teamColor)) {
-            board.addPiece(move.getEndPosition(), destPiece);
-            unsafeMove(undo);
-            return false;
-        } else {
-            board.addPiece(move.getEndPosition(), destPiece);
-            unsafeMove(undo);
-            return true;
-        }
     }
 
     /**
@@ -100,25 +88,40 @@ public class ChessGame {
         if (board.getPiece(start) != null &&
                 validMoves(start).contains(move)) {
             ChessPiece myPiece = board.getPiece(start);
-            board.addPiece(move.getEndPosition(), null);
+            board.addPiece(move.getEndPosition(), new ChessPiece(this.teamTurn,move.getPromotionPiece()));
             board.addPiece(start, null);
             board.addPiece(move.getEndPosition(), myPiece);
+            switchTeams(teamTurn);
         } else {
             throw new InvalidMoveException();
         }
     }
 
-    //make move but without the check to see if the move is valid, for use in checking if future moves put me in check
     private void unsafeMove(ChessMove move) {
         ChessPosition start = move.getStartPosition();
         if (board.getPiece(start) != null) {
             ChessPiece myPiece = board.getPiece(start);
-            board.addPiece(move.getEndPosition(), null);
-            board.addPiece(start, null);
             board.addPiece(move.getEndPosition(), myPiece);
+            board.addPiece(start, null);
         }
     }
 
+    public Collection<ChessMove> possibleMoves(TeamColor color) {
+        Collection<ChessMove> possibleMoves = new ArrayList<>();
+        for (int i = 1; i < 9; i++) {
+            for (int j = 1; j < 9; j++) {
+                ChessPosition boardPosition = new ChessPosition(i, j);
+                //safety check for a piece on the square
+                if (board.getPiece(boardPosition) != null) {
+                    //if the piece is my color, save all their possible moves
+                    if (board.getPiece(boardPosition).getTeamColor() == color) {
+                        possibleMoves.addAll(board.getPiece(boardPosition).pieceMoves(board, boardPosition));
+                    }
+                }
+            }
+        }
+        return possibleMoves;
+    }
     /**
      * Determines if the given team is in check
      *
@@ -136,6 +139,7 @@ public class ChessGame {
         Collection<ChessMove> otherMoves = possibleMoves(otherColor);
 
         for (ChessMove move : otherMoves) {
+            ChessPiece piece = board.getPiece(move.getEndPosition());
             if (board.getPiece(move.getEndPosition()) != null &&
                     board.getPiece(move.getEndPosition()).getPieceType() == ChessPiece.PieceType.KING &&
                     board.getPiece(move.getEndPosition()).getTeamColor() == teamColor) {
@@ -143,6 +147,41 @@ public class ChessGame {
             }
         }
         return false;
+    }
+
+    private boolean movePutsInCheck(TeamColor teamColor, ChessMove move) {
+        ChessPiece destPiece = board.getPiece(move.getEndPosition());
+        unsafeMove(move);
+        ChessMove undo = new ChessMove(move.getEndPosition(), move.getStartPosition(), null);
+        if (isInCheck(teamColor)) {
+            board.addPiece(move.getEndPosition(), destPiece);
+            board.addPiece(move.getStartPosition(),board.getPiece(move.getEndPosition()));
+            return true;
+        } else {
+            board.addPiece(move.getEndPosition(), destPiece);
+            board.addPiece(move.getStartPosition(),board.getPiece(move.getEndPosition()));
+            return false;
+        }
+    }
+
+    //make move but without the check to see if the move is valid, for use in checking if future moves put me in check
+
+    /**
+     * Determines if the given team is in stalemate, which here is defined as having
+     * no valid moves
+     *
+     * @param teamColor which team to check for stalemate
+     * @return True if the specified team is in stalemate, otherwise false
+     */
+    public boolean isInStalemate(TeamColor teamColor) {
+        if(isInCheck(teamColor)){return false;}
+        Collection<ChessMove> possibleMoves = possibleMoves(teamColor);
+        for (ChessMove move : possibleMoves) {
+            if (movePutsInCheck(teamColor, move)) {
+                possibleMoves.remove(possibleMoves);
+            }
+        }
+        return possibleMoves.isEmpty();
     }
 
     /**
@@ -155,34 +194,6 @@ public class ChessGame {
         Collection<ChessMove> possibleMoves = possibleMoves(teamColor);
         possibleMoves.removeIf(move -> movePutsInCheck(teamColor, move));
         return possibleMoves.isEmpty();
-    }
-
-    public Collection<ChessMove> possibleMoves(ChessGame.TeamColor color) {
-        Collection<ChessMove> possibleMoves = new ArrayList<>();
-        for (int i = 1; i < 9; i++) {
-            for (int j = 1; j < 9; j++) {
-                ChessPosition boardPosition = new ChessPosition(i, j);
-                //safety check for a piece on the square
-                if (board.getPiece(boardPosition) != null) {
-                    //if the piece is my color, save all their possible moves
-                    if (board.getPiece(boardPosition).getTeamColor() == color) {
-                        possibleMoves.addAll(board.getPiece(boardPosition).pieceMoves(board, boardPosition));
-                    }
-                }
-            }
-        }
-        return possibleMoves;
-    }
-
-    /**
-     * Determines if the given team is in stalemate, which here is defined as having
-     * no valid moves
-     *
-     * @param teamColor which team to check for stalemate
-     * @return True if the specified team is in stalemate, otherwise false
-     */
-    public boolean isInStalemate(TeamColor teamColor) {
-        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -200,7 +211,7 @@ public class ChessGame {
      * @return the chessboard
      */
     public ChessBoard getBoard() {
-        return board;
+        return this.board;
     }
 
     @Override
