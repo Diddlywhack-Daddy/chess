@@ -367,6 +367,7 @@ public class ChessPiece {
             }
 
             //handles left capture
+
             if (currentCol - 1 > 0) {
                 newPosition = new ChessPosition(currentRow + 1, currentCol - 1);
                 if (currentRow == 7 && board.getPiece(newPosition) != null && board.getPiece(newPosition).color != color) {
