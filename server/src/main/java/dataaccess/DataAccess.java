@@ -1,6 +1,7 @@
 package dataaccess;
 
 import java.util.ArrayList;
+import model.*;
 
 public class DataAccess {
     private ArrayList <String> authData;
