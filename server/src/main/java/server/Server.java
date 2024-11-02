@@ -3,6 +3,7 @@ package server;
 import dataaccess.DataAccess;
 import spark.*;
 import MyServices.*;
+import com.google.gson.Gson;
 
 public class Server {
     private DataAccess dataAccessor;
@@ -37,26 +38,39 @@ public class Server {
     }
 
     private Object registerHandler(Request request, Response response) {
+        UserService service = new UserService();
+        service.register();
         return null;
     }
 
     private Object loginHandler(Request request, Response response) {
+        UserService service = new UserService();
+        service.login();
         return null;
     }
 
     private Object logoutHandler(Request request, Response response) {
+        UserService service = new UserService();
+        service.logout();
         return null;
     }
 
     private Object listGamesHandler(Request request, Response response) {
+        GameService service = new GameService();
+        service.listGames();
         return null;
     }
 
     private Object createGameHandler(Request request, Response response) {
+        GameService service = new GameService();
+        var game = new Gson().fromJson(request.body(),String.class);
+        service.createGame(game);
         return null;
     }
 
     private Object joinGameHandler(Request request, Response response) {
+        GameService service = new GameService();
+        service.joinGame();
         return null;
     }
 

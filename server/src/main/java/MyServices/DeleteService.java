@@ -2,6 +2,7 @@ package MyServices;
 
 import dataaccess.DataAccess;
 
+//Service for Clear Application
 public class DeleteService {
     private DataAccess dataAccessor;
     public DeleteService(DataAccess dataAccessor) {
