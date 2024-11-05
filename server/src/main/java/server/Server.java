@@ -1,6 +1,6 @@
 package server;
 
-import dataaccess.DataAccess;
+import dataaccess.*;
 import spark.*;
 import MyServices.*;
 import com.google.gson.Gson;
@@ -32,8 +32,7 @@ public class Server {
     }
 
     public Object clearHandler(Request req, Response res){
-        DeleteService service = new DeleteService(dataAccessor);
-        service.delete();
+
         return "";
     }
 
