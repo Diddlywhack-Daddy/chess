@@ -1,14 +1,29 @@
 package server;
 
+import RequestClasses.RegisterRequest;
+import ResponseClasses.RegisterResponse;
 import dataaccess.*;
 import spark.*;
 import MyServices.*;
 import com.google.gson.Gson;
 
 public class Server {
-    private DataAccess dataAccessor;
+    private AuthDAO authDAO;
+    private GameDAO gameDAO;
+    private UserDAO userDAO;
+    private UserService userService;
+    private GameService gameService;
+    private ClearService clearService;
+
     public Server(){
-        dataAccessor = new DataAccess();
+        authDAO = new MemoryAuthDao();
+        gameDAO = new MemoryGameDAO();
+        userDAO = new MemoryUserDAO();
+        //TODO:Remember to replace these with SQL versions for phase 4!
+
+        userService = new UserService();
+        gameService = new GameService();
+        clearService = new ClearService();
     }
     public int run(int desiredPort) {
         Spark.port(desiredPort);
@@ -32,44 +47,41 @@ public class Server {
     }
 
     public Object clearHandler(Request req, Response res){
-
-        return "";
+        clearService.clear();
+        return res;
     }
 
     private Object registerHandler(Request request, Response response) {
-        UserService service = new UserService();
-        service.register();
-        return null;
+        RegisterRequest newRequest = new Gson().fromJson(request.body(),RegisterRequest.class);
+        RegisterResponse registerResponse = userService.register(newRequest);
+        response.status(200);
+
+        return new Gson().toJson(registerResponse);
     }
 
     private Object loginHandler(Request request, Response response) {
-        UserService service = new UserService();
-        service.login();
+        userService.login();
         return null;
     }
 
     private Object logoutHandler(Request request, Response response) {
-        UserService service = new UserService();
-        service.logout();
+        userService.logout();
         return null;
     }
 
     private Object listGamesHandler(Request request, Response response) {
-        GameService service = new GameService();
-        service.listGames();
+        gameService.listGames();
         return null;
     }
 
     private Object createGameHandler(Request request, Response response) {
-        GameService service = new GameService();
         var game = new Gson().fromJson(request.body(),String.class);
-        service.createGame(game);
+        gameService.createGame(game);
         return null;
     }
 
     private Object joinGameHandler(Request request, Response response) {
-        GameService service = new GameService();
-        service.joinGame();
+        gameService.joinGame();
         return null;
     }
 
