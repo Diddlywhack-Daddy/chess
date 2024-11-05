@@ -1,11 +1,10 @@
 package MyServices;
 
 
+import RequestClasses.BadRequestException;
 import RequestClasses.RegisterRequest;
 import ResponseClasses.RegisterResponse;
-import dataaccess.AuthDAO;
-import dataaccess.DataAccessException;
-import dataaccess.UserDAO;
+import dataaccess.*;
 import model.AuthData;
 import model.UserData;
 import spark.Request;
@@ -15,11 +14,11 @@ import spark.Response;
 public class UserService {
     private UserDAO userDAO;
     private AuthDAO authDAO;
-    public RegisterResponse register(RegisterRequest req) {
+    public RegisterResponse register(RegisterRequest req) throws DataAccessException,AlreadyTakenException, BadRequestException {
         try {
             if(userDAO.getUser(req.username())!=null){
-                throw new RuntimeException();
-                //TODO: make some exception classes
+                throw new AlreadyTakenException("Username already taken");
+                //TODO: throw the other exceptions
             }
                 userDAO.createUser(new UserData(req.username(), req.password(), req.email()));
                 AuthData authData = authDAO.createAuth(req.username());
@@ -27,7 +26,7 @@ public class UserService {
                 return new RegisterResponse(req.username(),authToken);
 
         } catch (DataAccessException e) {
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
     }
 

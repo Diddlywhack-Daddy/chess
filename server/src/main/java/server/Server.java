@@ -1,6 +1,8 @@
 package server;
 
+import RequestClasses.BadRequestException;
 import RequestClasses.RegisterRequest;
+import ResponseClasses.ClearResponse;
 import ResponseClasses.RegisterResponse;
 import dataaccess.*;
 import spark.*;
@@ -15,7 +17,7 @@ public class Server {
     private GameService gameService;
     private ClearService clearService;
 
-    public Server(){
+    public Server() {
         authDAO = new MemoryAuthDao();
         gameDAO = new MemoryGameDAO();
         userDAO = new MemoryUserDAO();
@@ -25,19 +27,20 @@ public class Server {
         gameService = new GameService();
         clearService = new ClearService();
     }
+
     public int run(int desiredPort) {
         Spark.port(desiredPort);
 
         Spark.staticFiles.location("web");
 
         // Register your endpoints and handle exceptions here.
-        Spark.delete("/db",this::clearHandler);
-        Spark.post("/user",this::registerHandler);
-        Spark.post("/session",this::loginHandler);
-        Spark.delete("/session",this::logoutHandler);
-        Spark.get("/game",this::listGamesHandler);
-        Spark.post("/game",this::createGameHandler);
-        Spark.put("/game",this::joinGameHandler);
+        Spark.delete("/db", this::clearHandler);
+        Spark.post("/user", this::registerHandler);
+        Spark.post("/session", this::loginHandler);
+        Spark.delete("/session", this::logoutHandler);
+        Spark.get("/game", this::listGamesHandler);
+        Spark.post("/game", this::createGameHandler);
+        Spark.put("/game", this::joinGameHandler);
 
         //This line initializes the server and can be removed once you have a functioning endpoint
         Spark.init();
@@ -46,17 +49,31 @@ public class Server {
         return Spark.port();
     }
 
-    public Object clearHandler(Request req, Response res){
-        clearService.clear();
-        return res;
+    public Object clearHandler(Request req, Response res) {
+        ClearResponse clearResponse = clearService.clear();
+        res.status(200);
+        return new Gson().toJson(clearResponse);
     }
 
     private Object registerHandler(Request request, Response response) {
-        RegisterRequest newRequest = new Gson().fromJson(request.body(),RegisterRequest.class);
-        RegisterResponse registerResponse = userService.register(newRequest);
-        response.status(200);
+        try {
+            RegisterRequest newRequest = new Gson().fromJson(request.body(), RegisterRequest.class);
+            RegisterResponse registerResponse = userService.register(newRequest);
+            response.status(200);
+            return new Gson().toJson(registerResponse);
+        } catch (DataAccessException e) {
+            response.status(500);
+            return new Gson().toJson(new ErrorMessage(e.getMessage()));
+        } catch (BadRequestException e) {
+            response.status(400);
+            return new Gson().toJson(new ErrorMessage(e.getMessage()));
 
-        return new Gson().toJson(registerResponse);
+        } catch (AlreadyTakenException e) {
+            response.status(403);
+            return new Gson().toJson(new ErrorMessage(e.getMessage()));
+
+        }
+
     }
 
     private Object loginHandler(Request request, Response response) {
@@ -75,7 +92,7 @@ public class Server {
     }
 
     private Object createGameHandler(Request request, Response response) {
-        var game = new Gson().fromJson(request.body(),String.class);
+        var game = new Gson().fromJson(request.body(), String.class);
         gameService.createGame(game);
         return null;
     }
